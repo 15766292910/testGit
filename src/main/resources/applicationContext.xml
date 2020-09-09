@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:mybatis-spring="http://mybatis.org/schema/mybatis-spring"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.3.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.3.xsd
+		http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring-1.2.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.3.xsd">
+
+	<!-- 配置spring的IOC 扫描组件 -->
+	<context:component-scan
+		base-package="cn.ssm.ljh">
+		<context:exclude-filter type="annotation"
+			expression="org.springframework.stereotype.Controller" />
+		<context:exclude-filter type="annotation"
+			expression="org.springframework.web.bind.annotation.ControllerAdvice" />
+	</context:component-scan>
+
+	<!-- 加载jdbc.properties -->
+	<context:property-placeholder
+		location="classpath:jdbc.properties" />
+
+	<!-- 配置数据源 -->
+	<bean id="dataSource"
+		class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+		<property name="driverClassName" value="${jdbc.driver}" />
+		<property name="url" value="${jdbc.url}" />
+		<property name="username" value="${jdbc.username}" />
+		<property name="password" value="${jdbc.password}" />
+	</bean>
+
+	<!-- 配置SpringAOP 以及Spring的声明式事务 配置事务管理器 -->
+	<bean id="transactionManager"
+		class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="dataSource"></property>
+	</bean>
+	<!-- 配置事务通知 -->
+	<tx:advice id="tx" transaction-manager="transactionManager">
+		<tx:attributes>
+			<tx:method name="*" isolation="DEFAULT"
+				propagation="REQUIRED" />
+			<tx:method name="sel*" isolation="DEFAULT"
+				propagation="SUPPORTS" read-only="true" />
+			<tx:method name="get*" isolation="DEFAULT"
+				propagation="SUPPORTS" read-only="true" />
+			<tx:method name="add*" isolation="DEFAULT"
+				propagation="REQUIRED" read-only="false" />
+			<tx:method name="save*" isolation="DEFAULT"
+				propagation="REQUIRED" read-only="false" />
+			<tx:method name="upt*" isolation="DEFAULT"
+				propagation="REQUIRED" read-only="false" />
+			<tx:method name="del*" isolation="DEFAULT"
+				propagation="REQUIRED" read-only="false" />
+		</tx:attributes>
+	</tx:advice>
+
+	<aop:config>
+		<aop:pointcut
+			expression="execution(* cn.ssm.ljh.service.impl.*.*(..))" id="pt" />
+		<aop:advisor advice-ref="tx" pointcut-ref="pt" />
+	</aop:config>
+
+	<!-- Spring 整合Mybatis 通过spring构建一个sqlSessionFactory对象 -->
+	<bean id="sqlSessionFactory"
+		class="org.mybatis.spring.SqlSessionFactoryBean">
+		<!-- 加载Mybaits主配置文件 -->
+		<property name="configLocation"
+			value="classpath:mybatis-config.xml" />
+		<!-- 告诉spring mapper.xml文件的位置 -->
+		<property name="mapperLocations"
+			value="classpath:cn/ssm/ljh/mapper/*.xml" />
+		<property name="dataSource" ref="dataSource" />
+		<!-- 批量给实体类起别名 -->
+		<property name="typeAliasesPackage"
+			value="cn.ssm.ljh.entity"></property>
+	</bean>
+
+	<!-- 扫描mapper接口 让spirng来管理 -->
+	<mybatis-spring:scan
+		base-package="cn.ssm.ljh.mapper" />
+</beans>
